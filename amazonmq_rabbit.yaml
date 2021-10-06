@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Creates an AmazonMQ instance with RabbitMQ' 
+Parameters:
+  Env:
+    Description: "Set the name of environment"
+    Type: String    
+    AllowedValues:
+      - dev
+      - stage 
+      - prod
+    Default: dev
+  Stack:
+    Description: "Stack to be assigned"
+    Type: String
+    AllowedValues:
+      - a
+      - b
+    Default: a
+  EngineVersion:
+    Description: "Rabbit Engine version"
+    Type: String
+    Default: 3.8.6
+  HostInstanceType:
+    Description: "Instance Type of where RabbitMQ will be hosted"
+    Type: String
+    Default: mq.t3.micro
+  DeploymentMode:
+    Type: String
+    AllowedValues:
+      - "SINGLE_INSTANCE"
+      - "ACTIVE_STANDBY_MULTI_AZ"
+      - "CLUSTER_MULTI_AZ"
+    Default: "SINGLE_INSTANCE"
+  RabbitSecretRabbit:
+    Description: "Rabbit main secret"
+    Type: String
+    Default: "dev/rmq/rabbit/admin"
+    
+Resources:
+  RabbitMQBroker:
+    Type: 'AWS::AmazonMQ::Broker'
+    Properties:
+      AutoMinorVersionUpgrade: false
+      BrokerName: !Sub ${Env}-rabbitmq-demo-${Stack}
+      DeploymentMode: !Ref DeploymentMode
+      EngineType: RABBITMQ
+      EngineVersion: !Ref EngineVersion
+      HostInstanceType: !Ref HostInstanceType
+      Logs:
+        General: true
+      MaintenanceWindowStartTime:
+        DayOfWeek: Monday
+        TimeOfDay: '22:45'
+        TimeZone: America/Los_Angeles
+      PubliclyAccessible: true
+      Users:
+        - Password: !Sub "{{resolve:secretsmanager:${RabbitSecretRabbit}:SecretString:password}}"
+          Username: !Sub "{{resolve:secretsmanager:${RabbitSecretRabbit}:SecretString:username}}"

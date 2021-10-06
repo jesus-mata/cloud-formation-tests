@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Example Table
+Parameters:
+  Environment:
+    Description: Environment
+    Default: dev
+    Type: String
+  TableName:
+    Description: Table name
+    Default: txn_data
+    Type: String
+  TeamName:
+    Description: Name of the team responsible
+    Type: String
+    Default: Team-Settlement
+  MinCapacityUnitsReadSimpleTable:
+    Description: Min capacity units for read on DDB
+    Type: Number
+    Default: 5
+  MinCapacityUnitsWriteSimpleTable:
+    Description: Min Capacity units for write on DDB
+    Type: Number
+    Default: 5
+
+Resources:
+  DDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}_${TableName}"
+      AttributeDefinitions:
+        - AttributeName: "txn_id"
+          AttributeType: S
+        - AttributeName: "acct_id"
+          AttributeType: S
+        - AttributeName: "crt_dt"
+          AttributeType: S
+      KeySchema:
+        - AttributeName: "txn_id"
+          KeyType: HASH
+        - AttributeName: "crt_dt"
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: "acct_id_index"
+          KeySchema:
+            - AttributeName: "txn_id"
+              KeyType: HASH
+            - AttributeName: "acct_id"
+              KeyType: RANGE
+          Projection:
+            ProjectionType: "ALL"
+      GlobalSecondaryIndexes:
+        - IndexName: acct_id_gsi
+          KeySchema:
+            - AttributeName: acct_id
+              KeyType: HASH
+            - AttributeName: "crt_dt"
+              KeyType: RANGE
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref MinCapacityUnitsReadSimpleTable
+            WriteCapacityUnits: !Ref MinCapacityUnitsWriteSimpleTable
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref MinCapacityUnitsReadSimpleTable
+        WriteCapacityUnits: !Ref MinCapacityUnitsWriteSimpleTable
+      Tags:
+        - Key: Env
+          Value: !Ref Environment
+        - Key: Owner
+          Value: !Ref TeamName
